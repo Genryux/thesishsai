@@ -1,0 +1,50 @@
+{
+  "login": {
+    "token": "mock-jwt-token",
+    "user": {
+      "id": 1,
+      "email": "student@example.com",
+      "role": 3
+    }
+  },
+  "dashboard": {
+    "group": {
+      "id": 101,
+      "name": "Group 1 - STEM",
+      "adviser": "Mr. Smith"
+    },
+    "papers": [
+      {
+        "id": 201,
+        "title": "The Impact of AI on Education",
+        "status": "Under Review",
+        "latestVersion": "v1"
+      }
+    ]
+  },
+  "papers": [
+    {
+      "id": 201,
+      "title": "The Impact of AI on Education",
+      "status": "Under Review",
+      "latestVersion": "v1",
+      "groupId": 101
+    },
+    {
+      "id": 202,
+      "title": "Renewable Energy Sources",
+      "status": "Draft",
+      "latestVersion": "v1",
+      "groupId": 101
+    }
+  ],
+  "submissions": [
+    {
+      "id": 301,
+      "paperId": 201,
+      "version": "v1",
+      "fileUrl": "/mock/path/to/pdf",
+      "submittedAt": "2026-10-06T10:00:00Z"
+    }
+  ]
+}
