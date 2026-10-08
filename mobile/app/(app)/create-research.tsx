@@ -1,15 +1,19 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, StyleSheet, BackHandler } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, StyleSheet, BackHandler, ActivityIndicator } from 'react-native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, BookOpen, AlignLeft, Tag, Hash } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ScreenSlideMotion, createScreenSlideAnimation } from '../constants/designTokens';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ScreenSlideMotion, createScreenSlideAnimation } from '../../constants/designTokens';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+import { apiService } from '../../services/api';
 
 export default function CreateResearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
   const [title, setTitle] = useState('');
   const [abstract, setAbstract] = useState('');
@@ -46,10 +50,32 @@ export default function CreateResearchScreen() {
     };
   }, [handleClose, slideAnim]);
 
+  const createProjectMutation = useMutation({
+    mutationFn: async (newProject: any) => {
+      return await apiService.createPaper(newProject);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['papers'] });
+      handleClose();
+    },
+    onError: (error) => {
+      console.error("Failed to create project:", error);
+      alert("Failed to create project. Please make sure the JSON Server is running on port 3000.");
+    }
+  });
+
+  const { groupId } = useLocalSearchParams();
+  const currentGroupId = groupId ? parseInt(groupId as string, 10) : 101;
+
   const handleCreate = () => {
-    // TODO: Connect to API
-    console.log({ title, abstract, category, keywords });
-    handleClose();
+    createProjectMutation.mutate({
+      title,
+      abstract,
+      category,
+      keywords,
+      status: 'Draft',
+      groupId: currentGroupId,
+    });
   };
 
   // Interpolate opacity directly from the 0-to-1 slideAnim for perfect sync
@@ -178,11 +204,15 @@ export default function CreateResearchScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={handleCreate}
-                disabled={!title || !abstract}
-                className={`py-3.5 rounded-[18px] items-center ${title && abstract ? 'bg-[#2D60E8]' : 'bg-[#D1D8E0]'}`}
+                disabled={!title || !abstract || createProjectMutation.isPending}
+                className={`py-3.5 rounded-[18px] items-center justify-center flex-row ${title && abstract ? 'bg-[#2D60E8]' : 'bg-[#D1D8E0]'}`}
                 style={{ flex: 7 }}
               >
-                <Text className={`font-m-semibold text-[15px] ${title && abstract ? 'text-white' : 'text-gray-500'}`}>Create</Text>
+                {createProjectMutation.isPending ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className={`font-m-semibold text-[15px] ${title && abstract ? 'text-white' : 'text-gray-500'}`}>Create</Text>
+                )}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>

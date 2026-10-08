@@ -2,48 +2,158 @@
   "login": {
     "token": "mock-jwt-token",
     "user": {
-      "id": 1,
-      "email": "student@example.com",
-      "role": 3
+      "id": 2,
+      "email": "student1@example.com",
+      "roleId": 3
     }
   },
-  "dashboard": {
-    "group": {
-      "id": 101,
-      "name": "Group 1 - STEM",
-      "adviser": "Mr. Smith"
+  "users": [
+    {
+      "id": 1,
+      "firstName": "Maria",
+      "lastName": "Santos",
+      "email": "adviser@example.com",
+      "password": "password123",
+      "roleId": 2
     },
-    "papers": [
-      {
-        "id": 201,
-        "title": "The Impact of AI on Education",
-        "status": "Under Review",
-        "latestVersion": "v1"
-      }
-    ]
-  },
+    {
+      "id": 2,
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "student1@example.com",
+      "password": "password123",
+      "roleId": 3
+    },
+    {
+      "id": 3,
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "email": "student2@example.com",
+      "password": "password123",
+      "roleId": 3
+    },
+    {
+      "id": 4,
+      "firstName": "test",
+      "lastName": "Smith",
+      "email": "test@example.com",
+      "password": "password123",
+      "roleId": 3
+    }
+  ],
+  "research_groups": [
+    {
+      "id": 101,
+      "groupName": "Group 3",
+      "strand": "STEM",
+      "section": "A",
+      "schoolYear": "S.Y. 2026-2027",
+      "adviserId": 1,
+      "status": "active"
+    },
+    {
+      "id": 102,
+      "groupName": "Group 4",
+      "strand": "ABM",
+      "section": "B",
+      "schoolYear": "S.Y. 2026-2027",
+      "adviserId": 1,
+      "status": "active"
+    }
+  ],
+  "group_members": [
+    {
+      "id": 1,
+      "groupId": 101,
+      "userId": 2,
+      "joinedAt": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "groupId": 102,
+      "userId": 3,
+      "joinedAt": "2026-10-02T10:00:00Z"
+    }
+  ],
   "papers": [
     {
-      "id": 201,
+      "id": "201",
       "title": "The Impact of AI on Education",
+      "abstract": "A study on how AI tools affect student learning outcomes.",
       "status": "Under Review",
       "latestVersion": "v1",
-      "groupId": 101
+      "groupId": 101,
+      "authors": [
+        "John D."
+      ]
     },
     {
-      "id": 202,
+      "id": "202",
       "title": "Renewable Energy Sources",
+      "abstract": "Exploring sustainable energy in urban areas.",
       "status": "Draft",
       "latestVersion": "v1",
-      "groupId": 101
+      "groupId": 101,
+      "authors": [
+        "John D."
+      ]
+    },
+    {
+      "id": "203",
+      "title": "ABM Financial Analysis",
+      "abstract": "A study on small business finances.",
+      "status": "Draft",
+      "latestVersion": "v1",
+      "groupId": 102,
+      "authors": [
+        "Jane S."
+      ]
+    },
+    {
+      "title": "bbb",
+      "abstract": "nnj",
+      "category": "",
+      "keywords": "",
+      "status": "Draft",
+      "groupId": 101,
+      "id": "nKL0evH"
+    },
+    {
+      "title": "test1",
+      "abstract": "test1!$!$!$!$+$+!$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$+$;$;$$;$;$;$;$;$;$;$;$;$;$;$;$!$!$!$!$!$!$!$!$!$!$!$+$+$++$!$+$+$+$;$;$;$;$;$!$!$!$!$!$!$!$!$!$!$!$",
+      "category": "",
+      "keywords": "",
+      "status": "Draft",
+      "groupId": 101,
+      "id": "7AWfRSI"
+    },
+    {
+      "title": "f",
+      "abstract": "f",
+      "category": "",
+      "keywords": "",
+      "status": "Draft",
+      "groupId": 101,
+      "id": "r0W9-L7"
+    },
+    {
+      "title": "test",
+      "abstract": "test",
+      "category": "",
+      "keywords": "",
+      "status": "Draft",
+      "groupId": 101,
+      "id": "xatWts5"
     }
   ],
   "submissions": [
     {
       "id": 301,
       "paperId": 201,
+      "submittedBy": 2,
       "version": "v1",
       "fileUrl": "/mock/path/to/pdf",
+      "status": "Submitted",
       "submittedAt": "2026-10-06T10:00:00Z"
     }
   ]

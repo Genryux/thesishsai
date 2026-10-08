@@ -1,11 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { View, TouchableOpacity, ScrollView, Text, Pressable, Animated, StyleSheet, Easing } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { View, TouchableOpacity, ScrollView, Text, Pressable, Animated, StyleSheet, Easing, ActivityIndicator } from 'react-native';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Bell, Settings, FileText, Plus, FilePlus, FileUp } from 'lucide-react-native';
 import Svg, { Rect, Defs, RadialGradient as SvgRadialGradient, Stop } from 'react-native-svg';
 import { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { BlurView, BlurTargetView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiService } from '../../services/api';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -92,24 +94,64 @@ export default function DashboardScreen() {
     });
   };
 
-  const mockGroup = testState > 0 ? {
-    name: 'Group 3',
-    strand: 'STEM',
-    adviser: 'Maria Santos',
-    members: 6,
-    schoolYear: 'S.Y. 2026-2027'
+  const { userId } = useLocalSearchParams();
+  const currentUserId = userId ? parseInt(userId as string, 10) : 2; // Default to John Doe
+
+  // Fetch which group this user belongs to
+  const { data: memberData, isLoading: isMemberLoading, error: memberError } = useQuery({
+    queryKey: ['membership', currentUserId],
+    queryFn: () => apiService.getGroupMembership(currentUserId)
+  });
+
+  const currentGroupId = memberData?.groupId;
+
+  // Fetch the active research group and its members
+  const { data: groupData, isLoading: isGroupLoading, error: groupError } = useQuery({
+    queryKey: ['group', currentGroupId],
+    enabled: !!currentGroupId,
+    queryFn: () => apiService.getGroup(currentGroupId)
+  });
+
+  // Fetch the adviser's name
+  const { data: adviserData } = useQuery({
+    queryKey: ['user', groupData?.adviserId],
+    enabled: !!groupData?.adviserId,
+    queryFn: () => apiService.getUser(groupData.adviserId)
+  });
+
+  const mockGroup = groupData ? {
+    name: groupData.groupName,
+    strand: groupData.strand,
+    adviser: adviserData ? adviserData.firstName + ' ' + adviserData.lastName : 'Loading...',
+    members: groupData.group_members ? groupData.group_members.length : 0,
+    schoolYear: groupData.schoolYear
   } : null;
 
-  const mockProjects = testState === 2 ? [
-    {
-      id: 1,
-      title: 'The Impact of AI on Education',
-      abstract: 'A study on how AI tools affect student learning outcomes.',
-      status: 'Draft',
-      version: 'v1',
-      authors: ['J', 'J', 'J', 'J', 'JD']
-    }
-  ] : [];
+  const { data: mockProjects = [], isLoading: isProjectsLoading, error: projectsError } = useQuery({
+    queryKey: ['papers', { groupId: currentGroupId }],
+    enabled: !!currentGroupId,
+    queryFn: () => apiService.getPapers(currentGroupId)
+  });
+
+  // Handle Loading & Error States gracefully
+  if (isMemberLoading || (currentGroupId && isGroupLoading)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2D60E8" />
+        <Text style={{ marginTop: 10 }}>Loading your workspace...</Text>
+      </View>
+    );
+  }
+
+  if (memberError || groupError || projectsError) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ color: 'red', textAlign: 'center' }}>
+          Error loading dashboard: {memberError?.message || groupError?.message || projectsError?.message}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#EDF1F5]" edges={['top', 'left', 'right']}>
@@ -196,7 +238,7 @@ export default function DashboardScreen() {
                     Start by creating your first research project
                   </Text>
                   <TouchableOpacity 
-                  onPress={() => router.push('/create-research')}
+                  onPress={() => router.push({ pathname: '/create-research', params: { groupId: currentGroupId } })}
                   className="bg-[#2D60E8] py-3.5 px-8 rounded-2xl flex-row items-center justify-center shadow-sm"
                 >
                     <Plus size={16} color="white" style={{ marginRight: 6 }} />
@@ -206,41 +248,49 @@ export default function DashboardScreen() {
               )}
 
               {/* State 3: Have Research Project */}
-              {mockProjects.length > 0 && mockProjects.map((project) => (
-                <TouchableOpacity 
-                  key={project.id} 
-                  className="bg-white p-5 rounded-[20px] mb-4 shadow-sm border border-gray-200"
-                >
-                  <Text className="text-[15px] font-m-bold text-gray-900 mb-1">{project.title}</Text>
-                  <Text className="text-[13px] font-sans text-gray-400 leading-5 mb-5">
-                    {project.abstract}
-                  </Text>
-                  
-                  <View className="h-[1px] bg-gray-100 w-full mb-4" />
-                  
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center gap-2">
-                      <View className="bg-[#EAECEE] px-3 py-1 rounded-md">
-                        <Text className="text-gray-500 text-[11px] font-m-bold">{project.status}</Text>
-                      </View>
-                      <Text className="text-gray-400 font-sans text-[13px]">({project.version})</Text>
-                    </View>
+              {Array.isArray(mockProjects) && mockProjects.length > 0 && mockProjects.map((project: any) => {
+                if (!project) return null;
+                return (
+                  <TouchableOpacity 
+                    key={project.id || Math.random()} 
+                    className="bg-white p-5 rounded-[20px] mb-4 shadow-sm border border-gray-200"
+                    onPress={() => router.push({ pathname: '/project/[id]', params: { id: project.id } })}
+                  >
+                    <Text className="text-[15px] font-m-bold text-gray-900 mb-1">{project.title || 'Untitled Project'}</Text>
+                    <Text className="text-[13px] font-sans text-gray-400 leading-5 mb-5" numberOfLines={2}>
+                      {project.abstract || 'No abstract provided for this research project.'}
+                    </Text>
                     
-                    {/* Overlapping Avatars */}
-                    <View className="flex-row">
-                      {project.authors.map((author, index) => (
-                        <View 
-                          key={index} 
-                          className="w-7 h-7 rounded-full bg-[#2D60E8] border-2 border-white items-center justify-center"
-                          style={{ marginLeft: index === 0 ? 0 : -8 }}
-                        >
-                          <Text className="text-white text-[10px] font-m-bold">{author}</Text>
+                    <View className="h-[1px] bg-gray-100 w-full mb-4" />
+                    
+                    <View className="flex-row justify-between items-center">
+                      <View className="flex-row items-center gap-2">
+                        <View className="bg-[#EAECEE] px-3 py-1 rounded-md">
+                          <Text className="text-gray-500 text-[11px] font-m-bold">{project.status || 'Draft'}</Text>
                         </View>
-                      ))}
+                        <Text className="text-gray-400 font-sans text-[13px]">({project.version || project.latestVersion || 'v1'})</Text>
+                      </View>
+                      
+                      {/* Overlapping Avatars */}
+                      <View className="flex-row">
+                        {Array.isArray(project.authors) ? project.authors.map((author: string, index: number) => (
+                          <View 
+                            key={index} 
+                            className="w-7 h-7 rounded-full bg-[#2D60E8] border-2 border-white items-center justify-center"
+                            style={{ marginLeft: index === 0 ? 0 : -8 }}
+                          >
+                            <Text className="text-white text-[10px] font-m-bold">{author || '?'}</Text>
+                          </View>
+                        )) : (
+                          <View className="w-7 h-7 rounded-full bg-[#2D60E8] border-2 border-white items-center justify-center">
+                            <Text className="text-white text-[10px] font-m-bold">JD</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
 
@@ -248,7 +298,7 @@ export default function DashboardScreen() {
       </BlurTargetView>
 
       {/* Action Sheet Overlay (Rendered directly in DOM exactly like Skedue, NO Modal) */}
-      {isFabOpen && (
+      {mockGroup && isFabOpen && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 40 }]}>
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: sheetOpacity }]}>
             <BlurView 
@@ -283,7 +333,7 @@ export default function DashboardScreen() {
                 icon: FilePlus, 
                 onPress: () => {
                   handleCloseActions();
-                  setTimeout(() => router.push('/create-research'), 200);
+                  setTimeout(() => router.push({ pathname: '/create-research', params: { groupId: currentGroupId } }), 200);
                 }
               },
               { 
@@ -351,41 +401,43 @@ export default function DashboardScreen() {
       )}
 
       {/* Main Floating Action Button (Always mounted above overlay, zIndex 60) */}
-      <Animated.View style={{
-        position: 'absolute',
-        bottom: 32,
-        right: 24,
-        zIndex: 60,
-        transform: [{
-          scale: buttonScale.interpolate({
-            inputRange: [0, 1],
-            outputRange: [1, 0.9],
-          })
-        }]
-      }}>
-        <Pressable 
-          onPress={isFabOpen ? handleCloseActions : handleOpenActions}
-          className="w-16 h-16 bg-[#2D60E8] rounded-full items-center justify-center border border-[#5C88FF]/30"
-          style={{ 
-            elevation: 8, 
-            shadowColor: '#2D60E8', 
-            shadowOffset: { width: 0, height: 4 }, 
-            shadowOpacity: 0.4, 
-            shadowRadius: 12 
-          }}
-        >
-          <Animated.View style={{
-            transform: [{
-              rotate: buttonRotate.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0deg', '45deg'],
-              })
-            }]
-          }}>
-            <Plus size={28} color="white" />
-          </Animated.View>
-        </Pressable>
-      </Animated.View>
+      {mockGroup && (
+        <Animated.View style={{
+          position: 'absolute',
+          bottom: 32,
+          right: 24,
+          zIndex: 60,
+          transform: [{
+            scale: buttonScale.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0.9],
+            })
+          }]
+        }}>
+          <Pressable 
+            onPress={isFabOpen ? handleCloseActions : handleOpenActions}
+            className="w-16 h-16 bg-[#2D60E8] rounded-full items-center justify-center border border-[#5C88FF]/30"
+            style={{ 
+              elevation: 8, 
+              shadowColor: '#2D60E8', 
+              shadowOffset: { width: 0, height: 4 }, 
+              shadowOpacity: 0.4, 
+              shadowRadius: 12 
+            }}
+          >
+            <Animated.View style={{
+              transform: [{
+                rotate: buttonRotate.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '45deg'],
+                })
+              }]
+            }}>
+              <Plus size={28} color="white" />
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
+      )}
 
       <StatusBar style="dark" />
     </SafeAreaView>
