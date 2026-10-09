@@ -1,10 +1,68 @@
 const jsonServer = require('json-server');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const server = jsonServer.create();
 const router = jsonServer.router('db.json');
 const middlewares = jsonServer.defaults();
 
+// Setup Multer for file uploads
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+});
+const upload = multer({ storage: storage });
+
+// Serve uploaded files statically
+const express = require('express');
+server.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // We need to parse body to get email/password
 server.use(jsonServer.bodyParser);
+
+// Custom One-Step Submission Route (Matches Real Backend Flow)
+server.post('/submissions', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const { paperId, remarks } = req.body;
+  if (!paperId) {
+    return res.status(400).json({ error: 'paperId is required' });
+  }
+
+  const db = router.db;
+  
+  // Calculate internal version string (like the real backend does)
+  const existingSubmissions = db.get('submissions').filter({ paperId: parseInt(paperId) }).value();
+  const versionNum = existingSubmissions.length + 1;
+  const version = `v${versionNum}`;
+  
+  // Create submission record
+  const newSubmission = {
+    id: Date.now(), // Generate fake ID
+    paperId: parseInt(paperId),
+    submittedBy: 1, // hardcoded for mock
+    version: version,
+    fileUrl: `/uploads/${req.file.filename}`,
+    remarks: remarks || "",
+    status: "Submitted",
+    submittedAt: new Date().toISOString()
+  };
+
+  db.get('submissions').push(newSubmission).write();
+
+  res.status(201).json(newSubmission);
+});
 
 // Add custom delay to simulate real network
 server.use((req, res, next) => {

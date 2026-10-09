@@ -155,6 +155,183 @@
       "fileUrl": "/mock/path/to/pdf",
       "status": "Submitted",
       "submittedAt": "2026-10-06T10:00:00Z"
+    },
+    {
+      "paperId": 201,
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791517041621-CAPSTONE2.pdf",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T03:37:20.370Z",
+      "id": 302
+    },
+    {
+      "paperId": 201,
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791517113432-CAPSTONE2.pdf",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T03:38:32.194Z",
+      "id": 303
+    },
+    {
+      "paperId": 201,
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791522285474-CAPSTONE2.pdf",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T05:04:44.462Z",
+      "id": 304
+    },
+    {
+      "id": 1791526373046,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v1.4",
+      "fileUrl": "/uploads/1791526372973-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:12:53.046Z"
+    },
+    {
+      "id": 1791526399604,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v1.5",
+      "fileUrl": "/uploads/1791526399519-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:13:19.604Z"
+    },
+    {
+      "id": 1791526408568,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v1.6",
+      "fileUrl": "/uploads/1791526408487-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:13:28.568Z"
+    },
+    {
+      "id": 1791527286174,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v8",
+      "fileUrl": "/uploads/1791527286109-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:28:06.174Z"
+    },
+    {
+      "id": 1791527580679,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v9",
+      "fileUrl": "/uploads/1791527580578-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:33:00.679Z"
+    },
+    {
+      "id": 1791528359183,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v10",
+      "fileUrl": "/uploads/1791528359037-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:45:59.183Z"
+    },
+    {
+      "id": 1791528408634,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v11",
+      "fileUrl": "/uploads/1791528408521-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:46:48.634Z"
+    },
+    {
+      "id": 1791528432853,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v12",
+      "fileUrl": "/uploads/1791528432821-12341900.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:47:12.853Z"
+    },
+    {
+      "id": 1791528451170,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v13",
+      "fileUrl": "/uploads/1791528451075-ChatGPT_Cheatsheet_Costa.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:47:31.170Z"
+    },
+    {
+      "id": 1791528586122,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v14",
+      "fileUrl": "/uploads/1791528586009-ChatGPT_Cheatsheet_Costa.pdf",
+      "remarks": "hdhdhdud",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:49:46.122Z"
+    },
+    {
+      "id": 1791528620982,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v15",
+      "fileUrl": "/uploads/1791528620884-ChatGPT_Cheatsheet_Costa.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:50:20.982Z"
+    },
+    {
+      "id": 1791528672349,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v16",
+      "fileUrl": "/uploads/1791528672282-cyber-security.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:51:12.349Z"
+    },
+    {
+      "id": 1791528689169,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v17",
+      "fileUrl": "/uploads/1791528689008-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T06:51:29.169Z"
+    },
+    {
+      "id": 1791529246806,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v18",
+      "fileUrl": "/uploads/1791529246653-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T07:00:46.806Z"
+    }
+  ],
+  "feedbacks": [
+    {
+      "id": 1,
+      "submissionId": 1791529246806,
+      "teacherId": 1,
+      "comments": "Good work, but you need to improve the methodology section.",
+      "decision": "Revision Required",
+      "createdAt": "2026-10-09T07:15:15.000Z"
     }
   ]
 }

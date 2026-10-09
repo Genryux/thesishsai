@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 // Assuming local testing for now. Use an IP address for testing on physical devices, or localhost for emulators.
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000'; // 10.0.2.2 is Android emulator's localhost
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000'; // 10.0.2.2 is Android emulator's localhost
 
 export interface User {
   id: number;
@@ -105,6 +105,11 @@ class ApiService {
     });
   }
 
+  // --- Submissions ---
+  async getSubmissions(paperId: number): Promise<any[]> {
+    return await this.makeRequest(`/submissions?paperId=${paperId}&_sort=submittedAt&_order=desc&_embed=feedbacks`);
+  }
+
   // --- Groups & Users ---
   async getGroup(groupId: number): Promise<ResearchGroup & { group_members?: any[] }> {
     // We use _embed=group_members, a feature of json-server!
@@ -118,6 +123,41 @@ class ApiService {
   async getGroupMembership(userId: number): Promise<any> {
     const members = await this.makeRequest(`/group_members?userId=${userId}`);
     return members.length > 0 ? members[0] : null; 
+  }
+
+  // --- Document Upload & Submission ---
+  async submitResearchDocument(
+    fileUri: string, 
+    fileName: string, 
+    paperId: number, 
+    remarks: string = ''
+  ): Promise<any> {
+    const token = await this.getAuthToken();
+    const axios = require('axios').default;
+    
+    const formData = new FormData();
+    formData.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: 'application/pdf'
+    } as any);
+    
+    formData.append('paperId', paperId.toString());
+    formData.append('remarks', remarks);
+
+    try {
+      const response = await axios.post(`${BASE_URL}/submissions`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      return response.data;
+    } catch (e: any) {
+      console.error('Error uploading document via axios:', e.response?.data || e.message);
+      throw new Error(`Upload failed: ${e.message}`);
+    }
   }
 }
 

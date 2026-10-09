@@ -416,7 +416,7 @@ export default function DashboardScreen() {
         }}>
           <Pressable 
             onPress={isFabOpen ? handleCloseActions : handleOpenActions}
-            className="w-16 h-16 bg-[#2D60E8] rounded-full items-center justify-center border border-[#5C88FF]/30"
+            className="w-[72px] h-[72px] bg-[#2D60E8] rounded-full items-center justify-center border border-[#5C88FF]/30"
             style={{ 
               elevation: 8, 
               shadowColor: '#2D60E8', 

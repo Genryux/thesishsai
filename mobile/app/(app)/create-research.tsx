@@ -2,89 +2,78 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, BookOpen, AlignLeft, Tag, Hash } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef, useEffect, useCallback } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { ScreenSlideMotion, createScreenSlideAnimation } from '../../constants/designTokens';
+import { useCreateResearch } from '../../hooks/useCreateResearch';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-import { apiService } from '../../services/api';
+// 1. Define the validation schema using Zod
+const researchSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters").max(200, "Title is too long"),
+  abstract: z.string().min(20, "Abstract must be at least 20 characters"),
+  category: z.string().optional(),
+  keywords: z.string().optional(),
+});
+type ResearchFormValues = z.infer<typeof researchSchema>;
 
 export default function CreateResearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
+  const { groupId } = useLocalSearchParams();
+  const currentGroupId = groupId ? parseInt(groupId as string, 10) : 101;
 
-  const [title, setTitle] = useState('');
-  const [abstract, setAbstract] = useState('');
-  const [category, setCategory] = useState('');
-  const [keywords, setKeywords] = useState('');
+  // 2. Initialize React Hook Form with Zod resolver
+  const { control, handleSubmit, formState: { errors, isValid } } = useForm<ResearchFormValues>({
+    resolver: zodResolver(researchSchema),
+    defaultValues: { title: '', abstract: '', category: '', keywords: '' },
+    mode: 'onChange', // Trigger validation on change so the button unlocks instantly
+  });
 
-  // Use a 0-to-1 animation value as expected by Mento's design tokens
+  // Mento Design Token Animation setup
   const slideAnim = useRef(new Animated.Value(0)).current;
   const isClosing = useRef(false);
 
   const handleClose = useCallback(() => {
     if (isClosing.current) return;
     isClosing.current = true;
-    
-    // Exact 1:1 close animation from design tokens
     createScreenSlideAnimation.close(slideAnim, undefined, () => {
       router.back();
     });
   }, [router, slideAnim]);
 
   useEffect(() => {
-    // Exact 1:1 open animation from design tokens
     createScreenSlideAnimation.open(slideAnim);
-
-    const onBackPress = () => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       handleClose();
-      return true; // prevent default back action
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-    return () => {
-      backHandler.remove();
-    };
+      return true;
+    });
+    return () => backHandler.remove();
   }, [handleClose, slideAnim]);
 
-  const createProjectMutation = useMutation({
-    mutationFn: async (newProject: any) => {
-      return await apiService.createPaper(newProject);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['papers'] });
-      handleClose();
-    },
-    onError: (error) => {
-      console.error("Failed to create project:", error);
-      alert("Failed to create project. Please make sure the JSON Server is running on port 3000.");
-    }
+  // 3. Use our newly refactored custom hook
+  const createProjectMutation = useCreateResearch(() => {
+    handleClose(); // Close the screen on success
   });
 
-  const { groupId } = useLocalSearchParams();
-  const currentGroupId = groupId ? parseInt(groupId as string, 10) : 101;
-
-  const handleCreate = () => {
+  const onSubmit = (data: ResearchFormValues) => {
     createProjectMutation.mutate({
-      title,
-      abstract,
-      category,
-      keywords,
-      status: 'Draft',
+      title: data.title,
+      abstract: data.abstract,
+      category: data.category || '',
+      keywords: data.keywords || '',
       groupId: currentGroupId,
     });
   };
 
-  // Interpolate opacity directly from the 0-to-1 slideAnim for perfect sync
   const backdropOpacity = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.4],
   });
 
-  // Generate perfect translateY using the design token helper
   const translateY = slideAnim.interpolate(
     ScreenSlideMotion.interpolation.sheetTranslateY(SCREEN_HEIGHT)
   );
@@ -92,8 +81,6 @@ export default function CreateResearchScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Dimmed Backdrop synced 1:1 to slide physics */}
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropOpacity }]} />
 
       <Animated.View style={{ flex: 1, transform: [{ translateY }] }}>
@@ -114,7 +101,6 @@ export default function CreateResearchScreen() {
             className="flex-1 bg-[#EDF1F5]"
           >
             <ScrollView className="flex-1 px-5 pt-6 pb-8" contentContainerStyle={{ flexGrow: 1 }}>
-              
               <Text className="text-[13px] font-sans text-gray-500 mb-6 leading-5">
                 Fill in the details below to create a new research project. You can update these details later before publishing.
               </Text>
@@ -122,66 +108,102 @@ export default function CreateResearchScreen() {
               {/* Title Input */}
               <View className="mb-5">
                 <Text className="text-[13px] font-m-bold text-gray-700 mb-2 ml-1">Research Title <Text className="text-red-500">*</Text></Text>
-                <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
-                  <BookOpen size={20} color="#9CA3AF" className="mr-3" />
-                  <TextInput
-                    className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
-                    placeholder="e.g. The Impact of AI on Education"
-                    placeholderTextColor="#9CA3AF"
-                    value={title}
-                    onChangeText={setTitle}
-                    maxLength={200}
-                  />
-                </View>
+                <Controller
+                  control={control}
+                  name="title"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <>
+                      <View className={`flex-row items-center bg-white rounded-2xl border ${errors.title ? 'border-red-500' : 'border-gray-200'} px-4 py-1 h-14`}>
+                        <BookOpen size={20} color={errors.title ? "#EF4444" : "#9CA3AF"} className="mr-3" />
+                        <TextInput
+                          className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
+                          placeholder="e.g. The Impact of AI on Education"
+                          placeholderTextColor="#9CA3AF"
+                          onBlur={onBlur}
+                          onChangeText={onChange}
+                          value={value}
+                          maxLength={200}
+                        />
+                      </View>
+                      {errors.title && <Text className="text-[12px] font-sans text-red-500 mt-2 ml-1">{errors.title.message}</Text>}
+                    </>
+                  )}
+                />
               </View>
 
               {/* Abstract Input */}
               <View className="mb-5">
                 <Text className="text-[13px] font-m-bold text-gray-700 mb-2 ml-1">Abstract <Text className="text-red-500">*</Text></Text>
-                <View className="flex-row items-start bg-white rounded-2xl border border-gray-200 px-4 py-4 min-h-[140px]">
-                  <AlignLeft size={20} color="#9CA3AF" className="mr-3 mt-0.5" />
-                  <TextInput
-                    className="flex-1 font-m-medium text-[15px] text-gray-900 leading-6"
-                    placeholder="Brief summary of your research methodology and expected outcomes..."
-                    placeholderTextColor="#9CA3AF"
-                    value={abstract}
-                    onChangeText={setAbstract}
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
+                <Controller
+                  control={control}
+                  name="abstract"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <>
+                      <View className={`flex-row items-start bg-white rounded-2xl border ${errors.abstract ? 'border-red-500' : 'border-gray-200'} px-4 py-4 min-h-[140px]`}>
+                        <AlignLeft size={20} color={errors.abstract ? "#EF4444" : "#9CA3AF"} className="mr-3 mt-0.5" />
+                        <TextInput
+                          className="flex-1 font-m-medium text-[15px] text-gray-900 leading-6"
+                          placeholder="Brief summary of your research methodology and expected outcomes..."
+                          placeholderTextColor="#9CA3AF"
+                          onBlur={onBlur}
+                          onChangeText={onChange}
+                          value={value}
+                          multiline
+                          textAlignVertical="top"
+                        />
+                      </View>
+                      {errors.abstract && <Text className="text-[12px] font-sans text-red-500 mt-2 ml-1">{errors.abstract.message}</Text>}
+                    </>
+                  )}
+                />
               </View>
 
               {/* Category Input */}
               <View className="mb-5">
                 <Text className="text-[13px] font-m-bold text-gray-700 mb-2 ml-1">Category</Text>
-                <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
-                  <Tag size={20} color="#9CA3AF" className="mr-3" />
-                  <TextInput
-                    className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
-                    placeholder="e.g. Technology, Social Science"
-                    placeholderTextColor="#9CA3AF"
-                    value={category}
-                    onChangeText={setCategory}
-                    maxLength={100}
-                  />
-                </View>
+                <Controller
+                  control={control}
+                  name="category"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
+                      <Tag size={20} color="#9CA3AF" className="mr-3" />
+                      <TextInput
+                        className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
+                        placeholder="e.g. Technology, Social Science"
+                        placeholderTextColor="#9CA3AF"
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        maxLength={100}
+                      />
+                    </View>
+                  )}
+                />
               </View>
 
               {/* Keywords Input */}
               <View className="mb-8">
                 <Text className="text-[13px] font-m-bold text-gray-700 mb-2 ml-1">Keywords</Text>
-                <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
-                  <Hash size={20} color="#9CA3AF" className="mr-3" />
-                  <TextInput
-                    className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
-                    placeholder="e.g. AI, Education, Machine Learning"
-                    placeholderTextColor="#9CA3AF"
-                    value={keywords}
-                    onChangeText={setKeywords}
-                  />
-                </View>
-                <Text className="text-[11px] font-sans text-gray-400 mt-2 ml-1">Separate multiple keywords with commas</Text>
+                <Controller
+                  control={control}
+                  name="keywords"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <>
+                      <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
+                        <Hash size={20} color="#9CA3AF" className="mr-3" />
+                        <TextInput
+                          className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
+                          placeholder="e.g. AI, Education, Machine Learning"
+                          placeholderTextColor="#9CA3AF"
+                          onBlur={onBlur}
+                          onChangeText={onChange}
+                          value={value}
+                        />
+                      </View>
+                      <Text className="text-[11px] font-sans text-gray-400 mt-2 ml-1">Separate multiple keywords with commas</Text>
+                    </>
+                  )}
+                />
               </View>
 
             </ScrollView>
@@ -203,15 +225,15 @@ export default function CreateResearchScreen() {
                 <Text className="text-gray-700 font-m-semibold text-[15px]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                onPress={handleCreate}
-                disabled={!title || !abstract || createProjectMutation.isPending}
-                className={`py-3.5 rounded-[18px] items-center justify-center flex-row ${title && abstract ? 'bg-[#2D60E8]' : 'bg-[#D1D8E0]'}`}
+                onPress={handleSubmit(onSubmit)}
+                disabled={!isValid || createProjectMutation.isPending}
+                className={`py-3.5 rounded-[18px] items-center justify-center flex-row ${isValid ? 'bg-[#2D60E8]' : 'bg-[#D1D8E0]'}`}
                 style={{ flex: 7 }}
               >
                 {createProjectMutation.isPending ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className={`font-m-semibold text-[15px] ${title && abstract ? 'text-white' : 'text-gray-500'}`}>Create</Text>
+                  <Text className={`font-m-semibold text-[15px] ${isValid ? 'text-white' : 'text-gray-500'}`}>Create</Text>
                 )}
               </TouchableOpacity>
             </View>
