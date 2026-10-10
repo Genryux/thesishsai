@@ -42,16 +42,18 @@ server.post('/submissions', upload.single('file'), (req, res) => {
 
   const db = router.db;
   
+  const parsedPaperId = isNaN(Number(paperId)) ? paperId : parseInt(paperId, 10);
+  
   // Calculate internal version string (like the real backend does)
-  const existingSubmissions = db.get('submissions').filter({ paperId: parseInt(paperId) }).value();
+  const existingSubmissions = db.get('submissions').filter({ paperId: parsedPaperId }).value();
   const versionNum = existingSubmissions.length + 1;
   const version = `v${versionNum}`;
   
   // Create submission record
   const newSubmission = {
     id: Date.now(), // Generate fake ID
-    paperId: parseInt(paperId),
-    submittedBy: 1, // hardcoded for mock
+    paperId: parsedPaperId,
+    submittedBy: 2, // Hardcoded to student user ID (John Doe) for mock
     version: version,
     fileUrl: `/uploads/${req.file.filename}`,
     remarks: remarks || "",
@@ -70,20 +72,30 @@ server.use((req, res, next) => {
 });
 
 // Custom Login Route
+// Response shape mirrors the real backend's ServiceResult<T> (types/auth.ts) so the
+// mobile client is exercised against the same contract it will use in production.
 server.post('/login', (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
   const db = router.db; // lowdb instance
   
   // Find user
   const users = db.get('users').value();
-  const user = users.find(u => u.email === email && u.password === password);
+  const user = users.find(u => String(u.email).toLowerCase() === email && u.password === password);
   
   if (user) {
     // Generate fake token
     const token = 'fake-jwt-token-' + user.id;
-    res.status(200).json({ token, user });
+    // Only return safe fields (matches backend AuthUser) — never the password.
+    const { id, firstName, lastName, roleId } = user;
+    res.status(200).json({
+      success: true,
+      message: 'Login successful.',
+      data: { user: { id, firstName, lastName, email: user.email, roleId }, token },
+    });
   } else {
-    res.status(401).json({ message: 'Invalid credentials' });
+    // Generic message so account existence can't be probed.
+    res.status(401).json({ success: false, message: 'Invalid email or password.' });
   }
 });
 

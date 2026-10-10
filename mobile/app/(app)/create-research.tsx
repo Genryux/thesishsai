@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ScreenSlideMotion, createScreenSlideAnimation } from '../../constants/designTokens';
 import { useCreateResearch } from '../../hooks/useCreateResearch';
+import { useUpdateResearch } from '../../hooks/useUpdateResearch';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -23,13 +24,20 @@ type ResearchFormValues = z.infer<typeof researchSchema>;
 export default function CreateResearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { groupId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { groupId, editId, title, abstract, category, keywords } = params;
   const currentGroupId = groupId ? parseInt(groupId as string, 10) : 101;
+  const isEditMode = !!editId;
 
   // 2. Initialize React Hook Form with Zod resolver
   const { control, handleSubmit, formState: { errors, isValid } } = useForm<ResearchFormValues>({
     resolver: zodResolver(researchSchema),
-    defaultValues: { title: '', abstract: '', category: '', keywords: '' },
+    defaultValues: { 
+      title: isEditMode && title ? String(title) : '', 
+      abstract: isEditMode && abstract ? String(abstract) : '', 
+      category: isEditMode && category ? String(category) : '', 
+      keywords: isEditMode && keywords ? String(keywords) : '' 
+    },
     mode: 'onChange', // Trigger validation on change so the button unlocks instantly
   });
 
@@ -54,19 +62,30 @@ export default function CreateResearchScreen() {
     return () => backHandler.remove();
   }, [handleClose, slideAnim]);
 
-  // 3. Use our newly refactored custom hook
-  const createProjectMutation = useCreateResearch(() => {
-    handleClose(); // Close the screen on success
-  });
+  // 3. Use our newly refactored custom hooks
+  const createProjectMutation = useCreateResearch(() => handleClose());
+  const updateProjectMutation = useUpdateResearch(() => handleClose());
+
+  const isPending = createProjectMutation.isPending || updateProjectMutation.isPending;
 
   const onSubmit = (data: ResearchFormValues) => {
-    createProjectMutation.mutate({
-      title: data.title,
-      abstract: data.abstract,
-      category: data.category || '',
-      keywords: data.keywords || '',
-      groupId: currentGroupId,
-    });
+    if (isEditMode) {
+      updateProjectMutation.mutate({
+        id: editId as string,
+        title: data.title,
+        abstract: data.abstract,
+        category: data.category || '',
+        keywords: data.keywords || '',
+      });
+    } else {
+      createProjectMutation.mutate({
+        title: data.title,
+        abstract: data.abstract,
+        category: data.category || '',
+        keywords: data.keywords || '',
+        groupId: currentGroupId,
+      });
+    }
   };
 
   const backdropOpacity = slideAnim.interpolate({
@@ -84,16 +103,23 @@ export default function CreateResearchScreen() {
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropOpacity }]} />
 
       <Animated.View style={{ flex: 1, transform: [{ translateY }] }}>
-        <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-[#EDF1F5]" edges={['top']}>
           {/* Header */}
-          <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white relative justify-center">
+          <View className="flex-row items-center px-4 py-3 bg-[#EDF1F5] relative justify-center">
             <TouchableOpacity 
               onPress={handleClose}
-              className="absolute left-4 z-10 w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center"
+              className="absolute left-4 z-10 w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 2
+              }}
             >
               <ArrowLeft size={20} color="#374151" />
             </TouchableOpacity>
-            <Text className="text-lg font-m-bold text-gray-900">New Research</Text>
+            <Text className="text-lg font-m-bold text-gray-900">{isEditMode ? 'Edit Research' : 'New Research'}</Text>
           </View>
 
           <KeyboardAvoidingView 
@@ -102,7 +128,9 @@ export default function CreateResearchScreen() {
           >
             <ScrollView className="flex-1 px-5 pt-6 pb-8" contentContainerStyle={{ flexGrow: 1 }}>
               <Text className="text-[13px] font-sans text-gray-500 mb-6 leading-5">
-                Fill in the details below to create a new research project. You can update these details later before publishing.
+                {isEditMode 
+                  ? "Update the details of your research project below."
+                  : "Fill in the details below to create a new research project. You can update these details later before publishing."}
               </Text>
 
               {/* Title Input */}
@@ -113,7 +141,10 @@ export default function CreateResearchScreen() {
                   name="title"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <>
-                      <View className={`flex-row items-center bg-white rounded-2xl border ${errors.title ? 'border-red-500' : 'border-gray-200'} px-4 py-1 h-14`}>
+                      <View 
+                        className={`flex-row items-center bg-white rounded-2xl ${errors.title ? 'border-red-500' : 'border-gray-200'} px-4 py-1 h-14`}
+                        style={{ borderWidth: StyleSheet.hairlineWidth }}
+                      >
                         <BookOpen size={20} color={errors.title ? "#EF4444" : "#9CA3AF"} className="mr-3" />
                         <TextInput
                           className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
@@ -139,7 +170,10 @@ export default function CreateResearchScreen() {
                   name="abstract"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <>
-                      <View className={`flex-row items-start bg-white rounded-2xl border ${errors.abstract ? 'border-red-500' : 'border-gray-200'} px-4 py-4 min-h-[140px]`}>
+                      <View 
+                        className={`flex-row items-start bg-white rounded-2xl ${errors.abstract ? 'border-red-500' : 'border-gray-200'} px-4 py-4 min-h-[140px]`}
+                        style={{ borderWidth: StyleSheet.hairlineWidth }}
+                      >
                         <AlignLeft size={20} color={errors.abstract ? "#EF4444" : "#9CA3AF"} className="mr-3 mt-0.5" />
                         <TextInput
                           className="flex-1 font-m-medium text-[15px] text-gray-900 leading-6"
@@ -165,7 +199,10 @@ export default function CreateResearchScreen() {
                   control={control}
                   name="category"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
+                    <View 
+                      className="flex-row items-center bg-white rounded-2xl border-gray-200 px-4 py-1 h-14"
+                      style={{ borderWidth: StyleSheet.hairlineWidth }}
+                    >
                       <Tag size={20} color="#9CA3AF" className="mr-3" />
                       <TextInput
                         className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
@@ -189,7 +226,10 @@ export default function CreateResearchScreen() {
                   name="keywords"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <>
-                      <View className="flex-row items-center bg-white rounded-2xl border border-gray-200 px-4 py-1 h-14">
+                      <View 
+                        className="flex-row items-center bg-white rounded-2xl border-gray-200 px-4 py-1 h-14"
+                        style={{ borderWidth: StyleSheet.hairlineWidth }}
+                      >
                         <Hash size={20} color="#9CA3AF" className="mr-3" />
                         <TextInput
                           className="flex-1 font-m-medium text-[15px] text-gray-900 h-full"
@@ -226,14 +266,16 @@ export default function CreateResearchScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={handleSubmit(onSubmit)}
-                disabled={!isValid || createProjectMutation.isPending}
-                className={`py-3.5 rounded-[18px] items-center justify-center flex-row ${isValid ? 'bg-[#2D60E8]' : 'bg-[#D1D8E0]'}`}
+                disabled={!isValid || isPending}
+                className={`py-3.5 rounded-[18px] items-center justify-center flex-row ${isValid ? 'bg-[#2D60E8]' : 'bg-[#2D60E8]/50'}`}
                 style={{ flex: 7 }}
               >
-                {createProjectMutation.isPending ? (
+                {isPending ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className={`font-m-semibold text-[15px] ${isValid ? 'text-white' : 'text-gray-500'}`}>Create</Text>
+                  <Text className={`font-m-semibold text-[15px] ${isValid ? 'text-white' : 'text-white/70'}`}>
+                    {isEditMode ? 'Save Changes' : 'Create'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

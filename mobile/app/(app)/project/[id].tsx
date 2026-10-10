@@ -1,13 +1,13 @@
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Pressable, Modal, TextInput, KeyboardAvoidingView, Animated, Dimensions, PanResponder, Platform } from 'react-native';
+import { View, ScrollView, BackHandler, TouchableOpacity, ActivityIndicator, StyleSheet, Pressable, Modal, TextInput, KeyboardAvoidingView, Animated, Dimensions, PanResponder, Platform } from 'react-native';
 import { Text } from '../../../components/Text';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../../services/api';
 import { Colors, ModalMotion, ScreenSlideMotion, createScreenSlideAnimation, ModalStyles } from '../../../constants/designTokens';
-import { ArrowLeft, Eye, Upload, FileText, History, Users, Plus, X, UploadCloud } from 'lucide-react-native';
+import { ArrowLeft, Eye, Upload, FileText, History, Users, Plus, X, UploadCloud, Hash, Tag, Edit2 } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient as SvgRadialGradient, Stop, Rect } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Alert } from 'react-native';
 import { useSubmitDocument } from '../../../hooks/useSubmitDocument';
@@ -22,7 +22,36 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function ProjectDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const projectId = parseInt(id as string, 10);
+  const projectId = typeof id === 'string' && !isNaN(Number(id)) ? Number(id) : id as string;
+
+  const screenSlideAnim = useRef(new Animated.Value(0)).current;
+  const isClosing = useRef(false);
+
+  const handleCloseScreen = useCallback(() => {
+    if (isClosing.current) return;
+    isClosing.current = true;
+    createScreenSlideAnimation.close(screenSlideAnim, undefined, () => {
+      router.back();
+    });
+  }, [router, screenSlideAnim]);
+
+  useEffect(() => {
+    createScreenSlideAnimation.open(screenSlideAnim);
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleCloseScreen();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [handleCloseScreen, screenSlideAnim]);
+
+  const screenBackdropOpacity = screenSlideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.4],
+  });
+
+  const screenTranslateY = screenSlideAnim.interpolate(
+    ScreenSlideMotion.interpolation.sheetTranslateY(SCREEN_HEIGHT)
+  );
 
   const { data: project, isLoading, error } = useQuery({
     queryKey: ['paper', projectId],
@@ -32,6 +61,12 @@ export default function ProjectDetailsScreen() {
   const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery({
     queryKey: ['submissions', projectId],
     queryFn: () => apiService.getSubmissions(projectId)
+  });
+
+  const { data: groupMembers = [], isLoading: isLoadingMembers } = useQuery({
+    queryKey: ['group_members', project?.groupId],
+    queryFn: () => apiService.getGroupMembers(project!.groupId),
+    enabled: !!project?.groupId
   });
 
   const [remarksModalVisible, setRemarksModalVisible] = useState(false);
@@ -137,12 +172,30 @@ export default function ProjectDetailsScreen() {
     submitMutation.mutate({
       fileUri: selectedFile.uri,
       fileName: decodeURIComponent(selectedFile.name),
-      paperId: projectId,
+      paperId: Number(projectId),
       remarks: remarks
     });
   };
 
   const [activeTab, setActiveTab] = useState<'research' | 'versions' | 'members'>('research');
+  const [tabWidth, setTabWidth] = useState(0);
+  const tabSlide = useRef(new Animated.Value(0)).current;
+
+
+  
+  useEffect(() => {
+    let toValue = 0;
+    if (activeTab === 'research') toValue = 0;
+    else if (activeTab === 'versions') toValue = 1;
+    else if (activeTab === 'members') toValue = 2;
+    
+    Animated.spring(tabSlide, {
+      toValue,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 9,
+    }).start();
+  }, [activeTab]);
 
   if (isLoading || isLoadingSubmissions) {
     return (
@@ -156,7 +209,7 @@ export default function ProjectDetailsScreen() {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Failed to load project details.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnError}>
+        <TouchableOpacity onPress={handleCloseScreen} style={styles.backBtnError}>
           <Text style={styles.backBtnErrorText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -167,6 +220,30 @@ export default function ProjectDetailsScreen() {
   const keywords = project.keywords ? project.keywords.split(',').map((k: string) => k.trim()) : ['Technology', 'Social Science'];
 
   const latestSubmission = submissions.length > 0 ? submissions[0] : null;
+
+  const isUploadAllowed = (() => {
+    if (!latestSubmission) return true; // Allowed if no submissions exist
+    
+    const hasFeedback = latestSubmission.feedbacks && latestSubmission.feedbacks.length > 0;
+    
+    if (!hasFeedback) {
+      // If no feedback yet, restrict if status is "Submitted"
+      return latestSubmission.status !== 'Submitted';
+    } else {
+      // Check the latest feedback decision
+      const latestFeedback = latestSubmission.feedbacks[latestSubmission.feedbacks.length - 1];
+      const decision = latestFeedback?.decision;
+      
+      if (decision === 'Under Review' || decision === 'Approved') {
+        return false; // Restricted
+      } else if (decision === 'Revise Required' || decision === 'Revision Required') {
+        return true; // Allowed
+      }
+      
+      // Default fallback if we somehow get an unknown decision but have feedback
+      return false;
+    }
+  })();
 
   const handleViewDocument = async (submission: any) => {
     if (!submission?.fileUrl) return;
@@ -206,6 +283,13 @@ export default function ProjectDetailsScreen() {
     }
   };
 
+  const getSubmitterName = (submittedBy: number | string) => {
+    if (!groupMembers || groupMembers.length === 0) return 'Group Member';
+    const member = groupMembers.find((m: any) => String(m.user?.id) === String(submittedBy));
+    if (member && member.user) return `${member.user.firstName} ${member.user.lastName}`;
+    return 'Group Member';
+  };
+
   const DocumentItem = ({ submission, isWhiteBg = false, noMargin = false }: { submission: any, isWhiteBg?: boolean, noMargin?: boolean }) => {
     return (
       <View style={[styles.docItem, isWhiteBg ? styles.docItemWhite : styles.docItemGray, noMargin && { marginBottom: 0 }]}>
@@ -219,10 +303,19 @@ export default function ProjectDetailsScreen() {
           <Text style={styles.docName} numberOfLines={1} ellipsizeMode="tail">
             {decodeURIComponent(submission?.fileUrl?.split('/').pop()?.replace(/^\d+-/, '') || 'Document.pdf')}
           </Text>
-          <Text style={styles.docSubmitter}>Submitted on: {new Date(submission?.submittedAt).toLocaleDateString()}</Text>
+          <Text style={styles.docSubmitter}>Uploaded by {getSubmitterName(submission?.submittedBy)}</Text>
         </View>
       </View>
     );
+  };
+
+  const formatShortDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric'
+    });
   };
 
   const VersionItem = ({ submission, isActive, isLast, isFirst }: { submission: any, isActive?: boolean, isLast?: boolean, isFirst?: boolean }) => (
@@ -233,7 +326,7 @@ export default function ProjectDetailsScreen() {
         isLast && { bottom: 34, height: 'auto' } // Stop exactly at the last circle
       ]} />
 
-      <Text style={styles.timelineDateNew}>Submitted on {new Date(submission?.submittedAt).toLocaleDateString()}</Text>
+      <Text style={styles.timelineDateNew}>Submitted on {formatShortDate(submission?.submittedAt)}</Text>
       <TouchableOpacity 
         style={styles.timelineCardWrapperNew} 
         activeOpacity={0.7}
@@ -282,21 +375,53 @@ export default function ProjectDetailsScreen() {
   };
 
 
+  const projectStatusInfo = (() => {
+    if (!latestSubmission) return { text: 'Draft', color: '#64748B', bg: '#F1F5F9' };
+    const hasFeedback = latestSubmission.feedbacks && latestSubmission.feedbacks.length > 0;
+    if (!hasFeedback) {
+      if (latestSubmission.status === 'Submitted') return { text: 'Submitted', color: '#0284C7', bg: '#E0F2FE' };
+      return { text: 'Draft', color: '#64748B', bg: '#F1F5F9' };
+    }
+    const latestFeedback = latestSubmission.feedbacks[latestSubmission.feedbacks.length - 1];
+    const decision = latestFeedback?.decision;
+    if (decision === 'Under Review') return { text: 'Under Review', color: '#D97706', bg: '#FEF3C7' };
+    if (decision === 'Revise Required' || decision === 'Revision Required') return { text: 'Revise Required', color: '#DC2626', bg: '#FEF2F2' };
+    if (decision === 'Approved') return { text: 'Approved', color: '#059669', bg: '#D1FAE5' };
+    return { text: 'Submitted', color: '#0284C7', bg: '#E0F2FE' };
+  })();
+
   return (
-    <BlurTargetView style={styles.container} ref={contentRef}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+    <View style={{ flex: 1 }}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: screenBackdropOpacity }]} />
+      <Animated.View style={{ flex: 1, transform: [{ translateY: screenTranslateY }] }}>
+        <BlurTargetView style={styles.container} ref={contentRef}>
+          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+            {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleCloseScreen} style={styles.backButton}>
           <ArrowLeft size={18} color="#374151" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerText}>Current version: {latestSubmission?.version || 'v1'}</Text>
-          <View style={styles.draftBadge}>
-            <Text style={styles.draftText}>{project.status || 'Draft'}</Text>
+          <Text style={styles.headerText}>Current version: {latestSubmission?.version || 'v0'}</Text>
+          <View style={[styles.draftBadge, { backgroundColor: projectStatusInfo.bg }]}>
+            <Text style={[styles.draftText, { color: projectStatusInfo.color }]}>{projectStatusInfo.text}</Text>
           </View>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.push({
+            pathname: '/create-research',
+            params: {
+              editId: project.id,
+              title: project.title,
+              abstract: project.abstract,
+              category: project.category || '',
+              keywords: project.keywords || ''
+            }
+          })}
+        >
+          <Edit2 size={18} color="#374151" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -304,24 +429,61 @@ export default function ProjectDetailsScreen() {
         {activeTab === 'research' && (
           <>
             {/* Card 1: Details */}
-            <View style={styles.card}>
-          <Text style={styles.projectTitle}>{project.title || 'Untitled Project'}</Text>
-          <Text style={styles.projectAbstract}>
-            {project.abstract || 'A study on how AI tools affect student learning outcomes.'}
-          </Text>
-          <View style={styles.divider} />
-          <View style={styles.tagsContainer}>
-            {keywords.map((kw: string, i: number) => (
-              <View key={i} style={styles.tag}>
-                <Text style={styles.tagText}>{kw}</Text>
+            <View style={[styles.card, { overflow: 'hidden', padding: 0 }]}>
+              <View style={StyleSheet.absoluteFill}>
+                <Svg key={(project.keywords || '') + (project.category || '') + (project.abstract || '').length} height="100%" width="100%">
+                  <Defs>
+                    <SvgRadialGradient id="grad-details" cx="50%" cy="0%" r="80%">
+                      <Stop offset="0" stopColor="#5C88FF" stopOpacity="1" />
+                      <Stop offset="1" stopColor="#2D60E8" stopOpacity="1" />
+                    </SvgRadialGradient>
+                  </Defs>
+                  <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad-details)" />
+                </Svg>
               </View>
-            ))}
-          </View>
-        </View>
+              <View style={{ padding: 20 }}>
+                <Text style={[styles.projectTitle, { color: '#fff' }]}>{project.title || 'Untitled Project'}</Text>
+                <Text style={[styles.projectAbstract, { color: 'rgba(255,255,255,0.9)' }]}>
+                  {project.abstract || 'No abstract provided.'}
+                </Text>
+                {(project.category || project.keywords) && (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {project.category && (
+                        <View style={styles.leaderBadge}>
+                          <Tag size={12} color="#111827" style={{ marginRight: 4 }} />
+                          <Text style={styles.leaderBadgeText}>{project.category}</Text>
+                        </View>
+                      )}
+                      {project.keywords ? project.keywords.split(',').map((kw: string, i: number) => {
+                        const trimmed = kw.trim();
+                        if (!trimmed) return null;
+                        return (
+                          <View key={i} style={styles.leaderBadge}>
+                            <Hash size={12} color="#111827" style={{ marginRight: 2 }} />
+                            <Text style={styles.leaderBadgeText}>{trimmed}</Text>
+                          </View>
+                        );
+                      }) : null}
+                    </ScrollView>
+                  </>
+                )}
+              </View>
+            </View>
 
         {/* Card 2: Latest Submission */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Latest submission</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Latest submission</Text>
+            {latestSubmission && (
+              <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 11, color: '#4B5563' }}>
+                  {latestSubmission.version}
+                </Text>
+              </View>
+            )}
+          </View>
           
           {!latestSubmission ? (
             <View style={styles.emptySubmission}>
@@ -343,19 +505,25 @@ export default function ProjectDetailsScreen() {
 
                <Text style={[styles.feedbackLabel, { marginTop: 12, marginBottom: 6 }]}>Adviser's Feedback:</Text>
                <View style={styles.feedbackBox}>
-                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                   <View style={{ backgroundColor: '#FEF2F2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#FEE2E2' }}>
-                     <Text style={{ fontSize: 10, fontWeight: '600', color: '#DC2626' }}>
-                       Revision Required
-                     </Text>
-                   </View>
-                   <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
-                     {new Date().toLocaleDateString()}
-                   </Text>
-                 </View>
-                 <Text style={styles.feedbackText}>
-                   Great start, but the methodology needs more citations and a clearer explanation of the data collection process. Please revise and resubmit.
-                 </Text>
+                 {!latestSubmission?.feedbacks || latestSubmission.feedbacks.length === 0 ? (
+                   <Text style={styles.noFeedback}>No feedback from adviser yet.</Text>
+                 ) : (
+                   latestSubmission.feedbacks.map((fb: any, index: number) => (
+                     <View key={fb.id || index} style={{ marginBottom: index !== latestSubmission.feedbacks.length - 1 ? 16 : 0 }}>
+                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                         <View style={{ backgroundColor: fb.decision === 'Approved' ? '#ECFDF5' : '#FEF2F2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: fb.decision === 'Approved' ? '#D1FAE5' : '#FEE2E2' }}>
+                           <Text style={{ fontSize: 10, fontWeight: '600', color: fb.decision === 'Approved' ? '#059669' : '#DC2626' }}>
+                             {fb.decision}
+                           </Text>
+                         </View>
+                         <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                           {new Date(fb.createdAt).toLocaleDateString()}
+                         </Text>
+                       </View>
+                       <Text style={styles.feedbackText}>"{fb.comments}"</Text>
+                     </View>
+                   ))
+                 )}
                </View>
             </View>
           )}
@@ -436,17 +604,28 @@ export default function ProjectDetailsScreen() {
             <View style={styles.tabHeaderRow}>
               <Text style={styles.tabMainTitle}>Group members</Text>
               <View style={styles.membersCountBadge}>
-                <Text style={styles.membersCountText}>6 members</Text>
+                <Text style={styles.membersCountText}>{groupMembers.length} members</Text>
               </View>
             </View>
             
             <View style={styles.membersList}>
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" isLeader={true} />
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" />
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" />
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" />
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" />
-              <MemberItem name="Juan Delacruz" email="delacruzjuan@gmail.com" initials="JD" />
+              {isLoadingMembers ? (
+                <Text style={{ fontFamily: 'Manrope_400Regular', color: '#6B7280', textAlign: 'center', marginTop: 20 }}>Loading members...</Text>
+              ) : groupMembers.length > 0 ? (
+                groupMembers.map((member: any, index: number) => {
+                  const user = member.user;
+                  if (!user) return null;
+                  const name = `${user.firstName} ${user.lastName}`;
+                  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+                  // Fallback to false if the backend hasn't implemented the feature yet
+                  const isLeader = !!member.isLeader;
+                  return (
+                    <MemberItem key={member.id} name={name} email={user.email} initials={initials} isLeader={isLeader} />
+                  );
+                })
+              ) : (
+                <Text style={{ fontFamily: 'Manrope_400Regular', color: '#6B7280', textAlign: 'center', marginTop: 20 }}>No members found.</Text>
+              )}
             </View>
           </View>
         )}
@@ -455,23 +634,40 @@ export default function ProjectDetailsScreen() {
 
       {/* Floating Bottom Navigation */}
       <View style={styles.floatingNavContainer}>
-        <View style={styles.navPill}>
+        <View style={styles.navPill} onLayout={(e) => setTabWidth(e.nativeEvent.layout.width / 3)}>
+          {tabWidth > 0 && (
+            <Animated.View style={{
+              position: 'absolute',
+              left: 0, // start at 0, padding is inside navPill but we account for it in outputRange
+              top: 4,
+              bottom: 4,
+              width: tabWidth,
+              backgroundColor: '#EEF2FF',
+              borderRadius: 60,
+              transform: [{
+                translateX: tabSlide.interpolate({
+                  inputRange: [0, 1, 2],
+                  outputRange: [4, tabWidth, tabWidth * 2 - 4]
+                })
+              }]
+            }} />
+          )}
           <TouchableOpacity 
-            style={[styles.navItem, activeTab === 'research' && styles.navItemActive]}
+            style={styles.navItem}
             onPress={() => setActiveTab('research')}
           >
             <FileText size={20} color={activeTab === 'research' ? "#2D60E8" : "#6B7280"} strokeWidth={activeTab === 'research' ? 2.5 : 2} />
             <Text style={activeTab === 'research' ? styles.navItemTextActive : styles.navItemText}>Research</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.navItem, activeTab === 'versions' && styles.navItemActive]}
+            style={styles.navItem}
             onPress={() => setActiveTab('versions')}
           >
             <History size={20} color={activeTab === 'versions' ? "#2D60E8" : "#6B7280"} strokeWidth={activeTab === 'versions' ? 2.5 : 2} />
             <Text style={activeTab === 'versions' ? styles.navItemTextActive : styles.navItemText}>Versions</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.navItem, activeTab === 'members' && styles.navItemActive]}
+            style={styles.navItem}
             onPress={() => setActiveTab('members')}
           >
             <Users size={20} color={activeTab === 'members' ? "#2D60E8" : "#6B7280"} strokeWidth={activeTab === 'members' ? 2.5 : 2} />
@@ -479,7 +675,11 @@ export default function ProjectDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.fabBtn} onPress={handleOpenModal} disabled={submitMutation.isPending}>
+        <TouchableOpacity 
+          style={[styles.fabBtn, !isUploadAllowed && { backgroundColor: '#9CA3AF', borderColor: '#9CA3AF', shadowOpacity: 0, elevation: 0 }]} 
+          onPress={handleOpenModal} 
+          disabled={submitMutation.isPending || !isUploadAllowed}
+        >
           {submitMutation.isPending ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
@@ -645,7 +845,7 @@ export default function ProjectDetailsScreen() {
                           {new Date(fb.createdAt).toLocaleDateString()}
                         </Text>
                       </View>
-                      <Text style={styles.feedbackText}>{fb.comments}</Text>
+                      <Text style={styles.feedbackText}>"{fb.comments}"</Text>
                     </View>
                   ))
                 )}
@@ -664,7 +864,9 @@ export default function ProjectDetailsScreen() {
         </Animated.View>
       </Modal>
       </SafeAreaView>
-    </BlurTargetView>
+        </BlurTargetView>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -692,11 +894,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', 
     alignItems: 'center', 
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB'
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderHairline
   },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerText: { fontFamily: 'Manrope_500Medium', fontSize: 15, color: '#6B7280' },
+  headerText: { fontFamily: 'Manrope_500Medium', fontSize: 13, color: '#6B7280' },
   draftBadge: { backgroundColor: '#DFE4EA', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   draftText: { color: '#64748B', fontFamily: 'Manrope_600SemiBold', fontSize: 12 },
   
@@ -746,7 +948,7 @@ const styles = StyleSheet.create({
   feedbackLabel: { fontFamily: 'Manrope_500Medium', fontSize: 14, color: '#6B7280', marginBottom: 10 },
   feedbackBox: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 12, minHeight: 80, justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderHairline },
   noFeedback: { fontFamily: 'Manrope_400Regular', fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
-  feedbackText: { fontFamily: 'Manrope_400Regular', fontSize: 14, color: '#475569', lineHeight: 22 },
+  feedbackText: { fontFamily: 'Manrope_400Regular', fontSize: 14, color: '#475569', lineHeight: 22, fontStyle: 'italic' },
   
   // Recent Versions (in Research tab)
   recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, marginTop: 4, marginBottom: 16 },
@@ -837,7 +1039,7 @@ const styles = StyleSheet.create({
   memberNameLeader: { color: '#fff' },
   memberEmail: { fontFamily: 'Manrope_400Regular', fontSize: 13, color: '#6B7280' },
   memberEmailLeader: { color: 'rgba(255,255,255,0.8)' },
-  leaderBadge: { backgroundColor: '#FDE047', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  leaderBadge: { backgroundColor: '#FDE047', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, flexDirection: 'row', alignItems: 'center' },
   leaderBadgeText: { fontFamily: 'Manrope_700Bold', fontSize: 10, color: '#111827' },
   
   timelineWrapper: { paddingHorizontal: 4 },
@@ -858,7 +1060,7 @@ const styles = StyleSheet.create({
   },
   navPill: {
     flex: 1,
-    height: 72,
+    height: 64,
     marginRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -897,9 +1099,9 @@ const styles = StyleSheet.create({
     color: '#6B7280'
   },
   fabBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#2D60E8',
     borderWidth: 1,
     borderColor: 'rgba(92, 136, 255, 0.3)',
@@ -920,19 +1122,19 @@ const styles = StyleSheet.create({
   modalBody: { paddingBottom: 24 }, // Kept sensible padding for the inner body
   modalLabel: { fontFamily: 'Manrope_600SemiBold', fontSize: 13, color: '#475569', marginBottom: 8 },
   
-  modalSelectFileBtn: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed', borderRadius: 16, padding: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 12 },
+  modalSelectFileBtn: { backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', borderStyle: 'dashed', borderRadius: 16, padding: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 12 },
   modalSelectFileText: { fontFamily: 'Manrope_500Medium', fontSize: 14, color: '#6B7280' },
   
-  modalFileItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF2FF', padding: 12, borderRadius: 12, marginBottom: 24 },
+  modalFileItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF2FF', padding: 12, borderRadius: 12, marginBottom: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E0E7FF' },
   modalFileName: { fontFamily: 'Manrope_500Medium', fontSize: 14, color: '#2D60E8', marginLeft: 8, flex: 1 },
   modalChangeFileBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#fff', borderRadius: 8 },
   modalChangeFileText: { fontFamily: 'Manrope_600SemiBold', fontSize: 12, color: '#2D60E8' },
   
-  modalInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, padding: 16, minHeight: 120, fontFamily: 'Manrope_400Regular', fontSize: 15, color: '#111827', marginBottom: 24 },
+  modalInput: { backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', borderRadius: 16, padding: 16, minHeight: 120, fontFamily: 'Manrope_400Regular', fontSize: 15, color: '#111827', marginBottom: 24 },
   
   modalFooter: { flexDirection: 'row', gap: 12 },
   modalSubmitBtn: { flex: 1, backgroundColor: '#2D60E8', paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
-  modalSubmitBtnDisabled: { backgroundColor: '#94A3B8' },
+  modalSubmitBtnDisabled: { backgroundColor: 'rgba(45, 96, 232, 0.5)' },
   modalSubmitText: { color: '#fff', fontFamily: 'Manrope_600SemiBold', fontSize: 15 },
-  modalSubmitTextDisabled: { color: '#F1F5F9' }
+  modalSubmitTextDisabled: { color: 'rgba(255, 255, 255, 0.7)' }
 });

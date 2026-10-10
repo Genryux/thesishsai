@@ -5,7 +5,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="create-research" options={{ presentation: 'transparentModal', animation: 'none' }} />
-      <Stack.Screen name="project/[id]" />
+      <Stack.Screen name="project/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
     </Stack>
   );
 }

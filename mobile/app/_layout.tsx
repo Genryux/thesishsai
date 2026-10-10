@@ -31,7 +31,7 @@ export default function RootLayout() {
     async function checkAuth() {
       const token = await SecureStore.getItemAsync('authToken');
       const inAuthGroup = segments[0] === '(auth)';
-      const isIndex = segments.length === 0;
+      const isIndex = (segments as string[]).length === 0;
 
       if (!token && !inAuthGroup) {
         // If they have no token and aren't in the auth screens, kick them to login

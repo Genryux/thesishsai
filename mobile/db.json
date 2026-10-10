@@ -18,10 +18,10 @@
     },
     {
       "id": 2,
-      "firstName": "John",
+      "firstName": "Johnds",
       "lastName": "Doe",
-      "email": "student1@example.com",
-      "password": "password123",
+      "email": "student1@example.coms",
+      "password": "password1234",
       "roleId": 3
     },
     {
@@ -78,25 +78,29 @@
   "papers": [
     {
       "id": "201",
-      "title": "The Impact of AI on Education",
+      "title": "The Impact of AI on Educationn",
       "abstract": "A study on how AI tools affect student learning outcomes.",
       "status": "Under Review",
       "latestVersion": "v1",
       "groupId": 101,
       "authors": [
         "John D."
-      ]
+      ],
+      "category": "wew",
+      "keywords": "engk, fgg"
     },
     {
       "id": "202",
-      "title": "Renewable Energy Sources",
+      "title": "Renewable Energy Sourcesssss",
       "abstract": "Exploring sustainable energy in urban areas.",
       "status": "Draft",
       "latestVersion": "v1",
       "groupId": 101,
       "authors": [
         "John D."
-      ]
+      ],
+      "category": "",
+      "keywords": "gbhh,hhhhhh"
     },
     {
       "id": "203",
@@ -144,6 +148,60 @@
       "status": "Draft",
       "groupId": 101,
       "id": "xatWts5"
+    },
+    {
+      "title": "vvggg",
+      "abstract": "ggggggggggggkgebkegkbekbkebkrbkrbkr",
+      "category": "",
+      "keywords": "",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "4Y7WKA8"
+    },
+    {
+      "title": "test research project ",
+      "abstract": "jahdnsjs shs sjs sjs sj shsnssvbs s s",
+      "category": "",
+      "keywords": "",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "EIavZ93"
+    },
+    {
+      "title": "testetsetstts",
+      "abstract": "nsbdnsbdjdhsjs shsnd dns sjs ",
+      "category": "",
+      "keywords": "",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "DepXNQx"
+    },
+    {
+      "title": "test research ",
+      "abstract": "kshdjdvdjdgsjdhsjsvnsbsnsjsjs",
+      "category": "",
+      "keywords": "",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "JQAuv3C"
+    },
+    {
+      "title": "negro",
+      "abstract": "jsjsjdjd sbss sns sns js sne ejs sjs js djd djdjdjdndjdd jdd jdjdd d djd d djd d d ",
+      "category": "pwet",
+      "keywords": "malaking pwet",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "d1V9uyQ"
+    },
+    {
+      "title": "hguvkv",
+      "abstract": "bgivjcjvjvjvjvjvkvkvjvjvjvvivivkvkvkvvicjcjcucjcjcjvivivivivivivivivivuvuu fif j fjf jf u fuc uf ufuf uf uf uf uf uf uf uf uf uf ufu fjf j f jcux jc h ud ud hx hx h du dux h u. jd ux hx jx j djj xjx hc jx ux hjf hd hd jd jd hd u cjj c jfu dj f jcj cj jc j f jf fjfj. fj jffj. fj j ffk kf fk ffk kf k fk fkf kf kf ",
+      "category": "hgggg",
+      "keywords": " bbbbh, fghhhh",
+      "groupId": 101,
+      "status": "Draft",
+      "id": "4edZ4cX"
     }
   ],
   "submissions": [
@@ -322,16 +380,236 @@
       "remarks": "",
       "status": "Submitted",
       "submittedAt": "2026-10-09T07:00:46.806Z"
+    },
+    {
+      "id": 1791533242378,
+      "paperId": 202,
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791533242260-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T08:07:22.378Z"
+    },
+    {
+      "id": 1791533269318,
+      "paperId": 202,
+      "submittedBy": 1,
+      "version": "v2",
+      "fileUrl": "/uploads/1791533268853-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T08:07:49.318Z"
+    },
+    {
+      "id": 1791545202347,
+      "paperId": null,
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791545202250-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:26:42.348Z"
+    },
+    {
+      "id": 1791545221931,
+      "paperId": 4,
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791545221837-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:27:01.931Z"
+    },
+    {
+      "id": 1791545233758,
+      "paperId": 201,
+      "submittedBy": 1,
+      "version": "v19",
+      "fileUrl": "/uploads/1791545233673-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:27:13.758Z"
+    },
+    {
+      "id": 1791545494663,
+      "paperId": "4Y7WKA8",
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791545494562-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:31:34.663Z"
+    },
+    {
+      "id": 1791545587880,
+      "paperId": "EIavZ93",
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791545587780-CAPSTONE2.pdf",
+      "remarks": "bzbdbdndbdnsnbs",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:33:07.880Z"
+    },
+    {
+      "id": 1791545603174,
+      "paperId": "EIavZ93",
+      "submittedBy": 1,
+      "version": "v2",
+      "fileUrl": "/uploads/1791545603083-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:33:23.174Z"
+    },
+    {
+      "id": 1791545666065,
+      "paperId": "EIavZ93",
+      "submittedBy": 1,
+      "version": "v3",
+      "fileUrl": "/uploads/1791545665926-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:34:26.065Z"
+    },
+    {
+      "id": 1791545676377,
+      "paperId": "EIavZ93",
+      "submittedBy": 1,
+      "version": "v4",
+      "fileUrl": "/uploads/1791545676272-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:34:36.377Z"
+    },
+    {
+      "id": 1791545681676,
+      "paperId": "EIavZ93",
+      "submittedBy": 1,
+      "version": "v5",
+      "fileUrl": "/uploads/1791545681579-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:34:41.676Z"
+    },
+    {
+      "id": 1791545803137,
+      "paperId": "DepXNQx",
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791545803047-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:36:43.137Z"
+    },
+    {
+      "id": 1791545976015,
+      "paperId": "DepXNQx",
+      "submittedBy": 1,
+      "version": "v2",
+      "fileUrl": "/uploads/1791545975909-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:39:36.015Z"
+    },
+    {
+      "id": 1791546031751,
+      "paperId": "JQAuv3C",
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791546031577-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:40:31.751Z"
+    },
+    {
+      "id": 1791546043587,
+      "paperId": "JQAuv3C",
+      "submittedBy": 1,
+      "version": "v2",
+      "fileUrl": "/uploads/1791546043491-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:40:43.587Z"
+    },
+    {
+      "id": 1791546055452,
+      "paperId": "JQAuv3C",
+      "submittedBy": 1,
+      "version": "v3",
+      "fileUrl": "/uploads/1791546055362-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:40:55.452Z"
+    },
+    {
+      "id": 1791546786538,
+      "paperId": "nKL0evH",
+      "submittedBy": 1,
+      "version": "v1",
+      "fileUrl": "/uploads/1791546786439-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T11:53:06.538Z"
+    },
+    {
+      "id": 1791550259360,
+      "paperId": 201,
+      "submittedBy": 2,
+      "version": "v20",
+      "fileUrl": "/uploads/1791550259253-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T12:50:59.360Z"
+    },
+    {
+      "id": 1791550275613,
+      "paperId": 201,
+      "submittedBy": 2,
+      "version": "v21",
+      "fileUrl": "/uploads/1791550275500-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-09T12:51:15.613Z"
+    },
+    {
+      "id": 1791602229780,
+      "paperId": "xatWts5",
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791602229684-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-10T03:17:09.780Z"
+    },
+    {
+      "id": 1791602608633,
+      "paperId": "d1V9uyQ",
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791602608535-Problem%20video%20sample%20and%20Unboxing_20261002_125552_0000.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-10T03:23:28.633Z"
+    },
+    {
+      "id": 1791613071344,
+      "paperId": "4edZ4cX",
+      "submittedBy": 2,
+      "version": "v1",
+      "fileUrl": "/uploads/1791613071255-CAPSTONE2.pdf",
+      "remarks": "",
+      "status": "Submitted",
+      "submittedAt": "2026-10-10T06:17:51.344Z"
     }
   ],
   "feedbacks": [
     {
       "id": 1,
-      "submissionId": 1791529246806,
-      "teacherId": 1,
-      "comments": "Good work, but you need to improve the methodology section.",
+      "createdAt": "2026-10-07T12:00:00Z",
       "decision": "Revision Required",
-      "createdAt": "2026-10-09T07:15:15.000Z"
+      "comments": "Great start, but the methodology needs more citations and a clearer explanation of the data collection process. Please revise and resubmit.",
+      "submissionId": 301,
+      "teacherId": 1
     }
   ]
 }
